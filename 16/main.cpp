@@ -60,6 +60,35 @@ void readTicketInput (char *line, plane_ticket *ticket) {
     parseInput(line, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", inputs);
 }
 
+bool orderForFieldIsValid (ticket_field_list *ticketFields, int fieldIndex, int depth, int *checkedFields, int *fieldOrder) {
+
+    if (ticketFields->values[fieldIndex].validIndices[depth]) {
+        // found valid ordergg
+        if (depth == FIELDS_PER_TICKET - 1) {
+            fieldOrder[depth] = fieldIndex;
+            return true;
+        }
+        else {
+            for (int i = 0; i < FIELDS_PER_TICKET; ++i) {
+                if (checkedFields[i]) {
+                    continue;
+                }
+                checkedFields[i] = true;
+                bool fieldOrderIsValid = orderForFieldIsValid(ticketFields, i, depth+1, checkedFields, fieldOrder);
+                if (fieldOrderIsValid) {
+                    fieldOrder[depth] = fieldIndex;
+                    return true;
+                }
+                checkedFields[i] = false;
+            }
+            return false;
+        }
+    }
+    else {
+        return false;
+    }
+} 
+
 int main (int argc, char **argv) {
     memory_arena memory = {};
     memory.capacity = 1 * 1024 * 1024;
@@ -167,9 +196,31 @@ int main (int argc, char **argv) {
     tempMemory.capacity = 512 * 1024 * 1024;
     tempMemory.base = malloc(tempMemory.capacity);
 
-
-
     tempMemory.size = 0;
+
+    int checkedFields[FIELDS_PER_TICKET] = {};
+    int fieldOrder[FIELDS_PER_TICKET] = {};
+
+    bool foundOrder = false;
+    for (int i = 0; i < FIELDS_PER_TICKET; ++i) {
+        checkedFields[i] = true;
+        bool fieldOrderIsValid = orderForFieldIsValid(&ticketFields, i, 0, checkedFields, fieldOrder);
+        if (fieldOrderIsValid) {
+            foundOrder = true;
+            break;
+        }
+        checkedFields[i] = false;
+    }
+
+    if (foundOrder) {
+        uint64 answer = 1;
+        for (int i = 0; i < FIELDS_PER_TICKET; ++i) {
+            if (fieldOrder[i] <= 5) {
+                answer *= (int64)(myTicket.fields[i]);
+            }
+        }
+        printf("%lld\n", answer);
+    }
 
     return 0;
 }
